@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5a623, #f5f7fa);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        #game-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            width: 320px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        #game-container:hover {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 15px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        input, select {
+            padding: 12px;
+            font-size: 16px;
+            width: 90%;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        button {
+            padding: 12px 18px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .score, .timer {
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .timer {
+            color: red;
+        }
+
+        .leaderboard {
+            margin-top: 40px;
+            font-size: 16px;
+        }
+
+        .leaderboard h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        ol {
+            padding-left: 20px;
+            list-style-type: decimal;
+            line-height: 1.6;
+        }
+
+        #start-button {
+            background-color: #2196F3;
+        }
+
+        #start-button:hover {
+            background-color: #1976D2;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Add animations for elements */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container" class="fade-in">
+        <h1>Math Game</h1>
+        
+        <!-- Name and time input -->
+        <div class="input-container">
+            <label for="name-input">Enter your name (optional):</label>
+            <input type="text" id="name-input" placeholder="Your name (leave empty for Guest)" />
+
+            <label for="time-select">Select game duration:</label>
+            <select id="time-select">
+                <option value="30">30 seconds</option>
+                <option value="60">60 seconds</option>
+                <option value="90">90 seconds</option>
+            </select>
+        </div>
+
+        <p id="question">What is 5 + 3?</p>
+        <input type="number" id="answer" placeholder="Your answer" disabled />
+        
+        <button id="start-button" onclick="startGame()">Start Game</button>
+        <button onclick="checkAnswer()">Submit Answer</button>
+
+        <p class="score">Score: <span id="score">0</span></p>
+        <p class="timer">Time Left: <span id="timer">30</span> seconds</p>
+    </div>
+
+    <div class="leaderboard">
+        <h2>Leaderboard</h2>
+        <ol id="leaderboard-list">
+            <!-- Leaderboard entries will go here -->
+        </ol>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 30;
+        let currentAnswer = 0;
+        let timerInterval;
+        let playerName = 'Guest'; // Default name is "Guest"
+        let gameStarted = false;
+
+        // Load leaderboard from localStorage
+        function loadLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            const leaderboardList = document.getElementById('leaderboard-list');
+            leaderboardList.innerHTML = ''; // Clear current leaderboard
+
+            // Display the top 5 players
+            leaderboard.slice(0, 5).forEach((entry, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${entry.name} - ${entry.score} points`;
+                leaderboardList.appendChild(listItem);
+            });
+        }
+
+        // Generate a new question
+        function generateQuestion() {
+            const operators = ['+', '-', '*'];
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            const operator = operators[Math.floor(Math.random() * operators.length)];
+
+            // Generate the math problem
+            let question = `${num1} ${operator} ${num2}`;
+            currentAnswer = evaluateExpression(num1, num2, operator);
+
+            // Display the question
+            document.getElementById('question').textContent = `What is ${question}?`;
+        }
+
+        // Evaluate the math expression based on the operator
+        function evaluateExpression(num1, num2, operator) {
+            if (operator === '+') {
+                return num1 + num2;
+            } else if (operator === '-') {
+                return num1 - num2;
+            } else if (operator === '*') {
+                return num1 * num2;
+            }
+            return 0;
+        }
+
+        // Check if the answer is correct
+        function checkAnswer() {
+            const playerAnswer = parseInt(document.getElementById('answer').value);
+
+            if (playerAnswer === currentAnswer) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+
+            // Generate a new question regardless of the correctness of the answer
+            generateQuestion(); 
+
+            // Clear the input field for the next answer
+            document.getElementById('answer').value = ''; 
+        }
+
+        // Timer countdown
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+
+                if (timeLeft === 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('question').textContent = "Time's up! Game Over.";
+                    document.getElementById('answer').disabled = true;
+                    saveScore(); // Save the score to the leaderboard when time is up
+                }
+            }, 1000);
+        }
+
+        // Start the game with selected time
+        function startGame() {
+            playerName = document.getElementById('name-input').value.trim() || "Guest"; // Use "Guest" if the name is empty
+
+            const selectedTime = parseInt(document.getElementById('time-select').value);
+            timeLeft = selectedTime; // Set the game time to the selected value
+
+            score = 0;
+            document.getElementById('score').textContent = score;
+            document.getElementById('timer').textContent = timeLeft;
+            document.getElementById('answer').disabled = false;
+            document.getElementById('start-button').disabled = true; // Disable the start button after starting
+            generateQuestion();
+            startTimer();
+
+            // Focus the input field automatically after the game starts
+            document.getElementById('answer').focus();
+
+            gameStarted = true;
+        }
+
+        // Save score to leaderboard
+        function saveScore() {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            leaderboard.push({ name: playerName, score: score });
+            leaderboard.sort((a, b) => b.score - a.score); // Sort by score, descending
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            loadLeaderboard();
+        }
+
+        // Add an event listener to trigger on "Enter" key press
+        document.getElementById('answer').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && gameStarted) {
+                checkAnswer();
+            }
+        });
+
+        // Load leaderboard on page load
+        window.onload = function() {
+            loadLeaderboard(); // Ensure leaderboard is loaded
+            const startButton = document.getElementById('start-button');
+            startButton.disabled = false; // Start button enabled initially
+        };
+    </script>
+</body>
+</html>
